@@ -34,8 +34,8 @@ Possibly useful API commands
 ### External Depencies
 
 ## Roadmap / Milestones
-1. Check correct API token
-2. Get List of Highlits or Books
+1. Check correct API token (done)
+2. Get List of Highlites or Books
 
 ## TODO
 ## Concepts & Go things I need to learn
