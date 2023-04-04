@@ -17,7 +17,7 @@ func TestCheckAPItoken(t *testing.T) {
 	t.Run("invalid token", func(t *testing.T) {
 		token := "wrong token"
 
-		got, err := CeckAPItoken(token, ts.URL)
+		got, err := CheckAPItoken(token, ts.URL)
 		want := false
 
 		checkNoError(t, err)
@@ -29,7 +29,7 @@ func TestCheckAPItoken(t *testing.T) {
 	t.Run("valid token", func(t *testing.T) {
 		token := "validToken"
 
-		got, err := CeckAPItoken(token, ts.URL)
+		got, err := CheckAPItoken(token, ts.URL)
 		want := true
 
 		checkNoError(t, err)
@@ -42,6 +42,6 @@ func TestCheckAPItoken(t *testing.T) {
 func checkNoError(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
-		t.Fatalf("Got an error, didn't want one: %#v", err)
+		t.Fatalf("Got an error, didn't want one: %v", err)
 	}
 }

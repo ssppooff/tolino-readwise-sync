@@ -29,13 +29,13 @@ func main() {
 }
 
 // GET Request to https://readwise.io/api/v2/auth/ with header: key "Authorization", value "Token XXX"
-func CeckAPItoken(token string, url string) (bool, error) {
+func CheckAPItoken(token string, url string) (bool, error) {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return false, errors.Join(errors.New("checkAPItoken: couldn't create HTTP request"), err)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 
+	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return false, errors.Join(errors.New("checkAPItoken: couldn't send request"), err)
@@ -43,9 +43,9 @@ func CeckAPItoken(token string, url string) (bool, error) {
 
 	if resp.StatusCode != 204 {
 		return false, nil
-	} else {
-		return true, nil
 	}
+
+	return true, nil
 }
 
 func readToken(filename string) (string, error) {
@@ -61,4 +61,9 @@ func readToken(filename string) (string, error) {
 		return "", errors.Join(errors.New("readToken: error while scanning for token"), err)
 	}
 	return token, nil
+}
+
+func setAuthHeader(token string, r *http.Request) *http.Request {
+	r.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
+	return r
 }
