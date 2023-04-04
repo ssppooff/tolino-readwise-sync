@@ -15,8 +15,23 @@ import (
 type Entry struct {
 }
 
+func extractEntries(input string) []string {
+	const delim = "\n\n-----------------------------------\n\n"
+	tmp := strings.Split(input, delim)
+	tmp = tmp[:len(tmp)-1]
+
+	ss := []string{}
+	for _, t := range tmp {
+		if entryType := extractType(t); entryType == "Note" || entryType == "Highlight" {
+			ss = append(ss, t)
+		}
+	}
+
+	return ss
+}
+
 func extractType(token string) string {
-	pattern := regexp.MustCompile(`\n(.+)$`)
+	pattern := regexp.MustCompile(`.*\n(\w+)\x{00A0}`)
 	return pattern.FindStringSubmatch(token)[1]
 }
 
