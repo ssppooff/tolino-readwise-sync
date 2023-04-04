@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,6 +38,30 @@ func TestCheckAPItoken(t *testing.T) {
 			t.Errorf("got %v, wanted %v", got, want)
 		}
 	})
+}
+
+func TestGetHighlights(t *testing.T) {
+	tsWrongSC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(204)
+	}))
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+	}))
+
+	t.Run("unexpected response status code", func(t *testing.T) {
+		_, err := GetHighlights(tsWrongSC.URL, "")
+		if err == nil {
+			t.Errorf("Wanted an error, didn't get one!")
+		}
+	})
+
+	t.Run("correct response status code", func(t *testing.T) {
+		resp, err := GetHighlights(ts.URL, "")
+		checkNoError(t, err)
+		fmt.Println(resp)
+	})
+
 }
 
 func checkNoError(t *testing.T, err error) {
