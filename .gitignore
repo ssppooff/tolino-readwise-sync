@@ -16,3 +16,6 @@
 
 # Access token for Readwise API
 token
+
+# File with higlights and notes from Tolino reader
+notes.txt
