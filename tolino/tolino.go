@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ssppooff/tolino-readwise-sync/utils"
 )
 
 const (
@@ -116,13 +118,5 @@ func extractNote(token string) (entry Entry, err error) {
 }
 
 func ExtractBooks(entries []Entry) []Book {
-	return mapF(entries, func(e Entry) Book { return e.GetBook() })
-}
-
-func mapF(entries []Entry, fn func(Entry) Book) []Book {
-	var res = make([]Book, len(entries))
-	for i, entry := range entries {
-		res[i] = fn(entry)
-	}
-	return res
+	return utils.Map(entries, func(e Entry) Book { return e.GetBook() })
 }
