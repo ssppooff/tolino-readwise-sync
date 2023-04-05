@@ -1,23 +1,39 @@
 package utils
 
-func Map[E any, F any](entries []E, fn func(E) F) []F {
-	var res = make([]F, len(entries))
-	for i, entry := range entries {
-		res[i] = fn(entry)
+func Map[E any, F any](sl []E, fn func(E) F) []F {
+	var res = make([]F, len(sl))
+	for i, el := range sl {
+		res[i] = fn(el)
 	}
 
 	return res
 }
 
-func MapWithErr[E any, F any](entries []E, fn func(E) (F, error)) ([]F, error) {
-	var res = make([]F, len(entries))
+func MapWithErr[E any, O any](sl []E, fn func(E) (O, error)) ([]O, error) {
+	var res = make([]O, len(sl))
 	var err error
-	for i, entry := range entries {
-		res[i], err = fn(entry)
+	for i, el := range sl {
+		res[i], err = fn(el)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return res, nil
+}
+
+func Filter[T any](sl []T, p func(T) bool) (res []T) {
+	for _, el := range sl {
+		if p(el) {
+			res = append(res, el)
+		}
+	}
+
+	return
+}
+
+func Not[T any](fn func(T) bool) func(T) bool {
+	return func(e T) bool {
+		return !fn(e)
+	}
 }
