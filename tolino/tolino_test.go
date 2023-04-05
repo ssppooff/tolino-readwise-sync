@@ -3,6 +3,7 @@ package tolino
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -108,6 +109,48 @@ func TestExtractEntries(t *testing.T) {
 			if toErr.err != eC.errStr {
 				fmt.Println(errors.Unwrap(err))
 				t.Errorf("%q: got %q, wanted %q", name, toErr, eC.errStr)
+			}
+		})
+	}
+}
+
+func TestEntry_GetBook(t *testing.T) {
+	testEntries := map[string]struct {
+		entry Entry
+		book  Book
+	}{
+		"correct entry":  {Entry{title: "Book title", author: "John Doe"}, Book{"Book title", "John Doe"}},
+		"missing title":  {Entry{title: "", author: "John Doe"}, Book{"", "John Doe"}},
+		"missing author": {Entry{title: "Book title", author: ""}, Book{"Book title", ""}},
+	}
+	for name, tC := range testEntries {
+		t.Run(name, func(t *testing.T) {
+			got := tC.entry.GetBook()
+			if got.author != tC.book.author {
+				t.Errorf("%q: didn't get correct author: got %q, wanted %q", name, got.author, tC.book.author)
+			}
+
+			if got.title != tC.book.title {
+				t.Errorf("%q: didn't get correct title: got %q, wanted %q", name, got.title, tC.book.title)
+			}
+		})
+	}
+}
+
+func TestExtractBookList(t *testing.T) {
+	testCases := map[string]struct {
+		entries []Entry
+		want    []Book
+	}{
+		"name": {
+			entries: []Entry{{title: "t1", author: "a1"}, {title: "t2", author: "a2"}, {title: "t3", author: "a3"}, {title: "t4", author: "a4"}},
+			want:    []Book{{"t1", "a1"}, {"t2", "a2"}, {"t3", "a3"}, {"t4", "a4"}},
+		},
+	}
+	for name, tC := range testCases {
+		t.Run(name, func(t *testing.T) {
+			if got := ExtractBooks(tC.entries); !reflect.DeepEqual(got, tC.want) {
+				t.Errorf("ExtractBookList() = %v, want %v", got, tC.want)
 			}
 		})
 	}

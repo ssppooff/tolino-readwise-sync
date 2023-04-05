@@ -32,6 +32,15 @@ type Entry struct {
 	date      time.Time
 }
 
+type Book struct {
+	title  string
+	author string
+}
+
+func (e Entry) GetBook() Book {
+	return Book{e.title, e.author}
+}
+
 func ExtractEntries(input string) (entries []Entry, err error) {
 	const delim = "\n\n-----------------------------------\n\n"
 	tmp := strings.Split(input, delim)
@@ -104,4 +113,16 @@ func extractNote(token string) (entry Entry, err error) {
 	}
 
 	return
+}
+
+func ExtractBooks(entries []Entry) []Book {
+	return mapF(entries, func(e Entry) Book { return e.GetBook() })
+}
+
+func mapF(entries []Entry, fn func(Entry) Book) []Book {
+	var res = make([]Book, len(entries))
+	for i, entry := range entries {
+		res[i] = fn(entry)
+	}
+	return res
 }

@@ -35,7 +35,8 @@ Possibly useful API commands
 
 ## Roadmap / Milestones
 1. Check correct API token (done)
-2. Get List of Highlites or Books
+2. Parse Tolino's notes.txt file into corresponding Go types (done)
+3. Get List of Highlites or Books
 
 ## TODO
 ## Concepts & Go things I need to learn
