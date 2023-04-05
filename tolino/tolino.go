@@ -43,27 +43,37 @@ func (e Entry) GetBook() Book {
 	return Book{e.title, e.author}
 }
 
+func (e Entry) isEmpty() bool {
+	if e.entryType == "" && e.title == "" && e.author == "" && e.highlight == "" {
+		return true
+	}
+
+	return false
+}
+
 func ExtractEntries(input string) (entries []Entry, err error) {
 	const delim = "\n\n-----------------------------------\n\n"
 	tmp := strings.Split(input, delim)
 	tmp = tmp[:len(tmp)-1]
 
-	for _, t := range tmp {
+	entries, err = utils.MapWithErr(tmp, func(t string) (Entry, error) {
 		entryType, err := extractType(t)
 		if err != nil {
-			return nil, TolinoError{ErrTypeExtraction, err.(TolinoError).entry}
+			return Entry{}, TolinoError{ErrTypeExtraction, err.(TolinoError).entry}
 		}
 
 		if entryType == "Note" || entryType == "Highlight" {
 			entry, err := extractNote(t)
 			if err != nil {
-				return nil, err
+				return Entry{}, err
 			}
-
-			entries = append(entries, entry)
+			return entry, nil
 		}
-	}
 
+		return Entry{}, nil
+	})
+
+	entries = utils.Filter(entries, utils.Not(Entry.isEmpty))
 	return
 }
 
