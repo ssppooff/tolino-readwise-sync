@@ -1,12 +1,25 @@
 package tolino
 
 import (
-	"errors"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+const (
+	ErrTypeExtraction   = "couldn't extract type"
+	ErrNotEnoughEntries = "not enough entries found"
+)
+
+type TolinoError struct {
+	err   string
+	entry string
+}
+
+func (e TolinoError) Error() string {
+	return e.err
+}
 
 type Entry struct {
 	title     string
@@ -19,13 +32,17 @@ type Entry struct {
 	date      time.Time
 }
 
-func extractEntries(input string) (entries []Entry, err error) {
+func ExtractEntries(input string) (entries []Entry, err error) {
 	const delim = "\n\n-----------------------------------\n\n"
 	tmp := strings.Split(input, delim)
 	tmp = tmp[:len(tmp)-1]
 
 	for _, t := range tmp {
-		entryType := extractType(t)
+		entryType, err := extractType(t)
+		if err != nil {
+			return nil, TolinoError{ErrTypeExtraction, err.(TolinoError).entry}
+		}
+
 		if entryType == "Note" || entryType == "Highlight" {
 			entry, err := extractNote(t)
 			if err != nil {
@@ -39,9 +56,15 @@ func extractEntries(input string) (entries []Entry, err error) {
 	return
 }
 
-func extractType(token string) string {
+func extractType(token string) (string, error) {
 	pattern := regexp.MustCompile(`.*\n(\w+)\x{00A0}`)
-	return pattern.FindStringSubmatch(token)[1]
+
+	matches := pattern.FindStringSubmatch(token)
+	if len(matches) < 2 {
+		return "", TolinoError{err: "couldn't extract entry type", entry: token}
+	}
+
+	return matches[1], nil
 }
 
 func extractNote(token string) (entry Entry, err error) {
@@ -49,7 +72,7 @@ func extractNote(token string) (entry Entry, err error) {
 
 	tmp := pattern.FindStringSubmatch(token)
 	if len(tmp) != 9 {
-		err = errors.New("issue extracting note: not enough entries found")
+		err = TolinoError{err: ErrNotEnoughEntries, entry: token}
 		return
 	}
 
