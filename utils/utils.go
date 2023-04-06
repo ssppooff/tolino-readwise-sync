@@ -32,6 +32,7 @@ func Filter[T any](sl []T, p func(T) bool) (res []T) {
 	return
 }
 
+// TODO Generics
 func Not[T any](fn func(T) bool) func(T) bool {
 	return func(e T) bool {
 		return !fn(e)
