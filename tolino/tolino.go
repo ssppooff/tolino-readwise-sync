@@ -12,6 +12,7 @@ import (
 const (
 	ErrTypeExtraction   = TolinoErrStr("couldn't extract type")
 	ErrNotEnoughEntries = TolinoErrStr("not enough entries found")
+	ErrWrongTimeStamp   = TolinoErrStr("date and time in wrong format")
 )
 
 type TolinoErrStr string
@@ -103,10 +104,10 @@ func extractNote(token string) (entry Entry, err error) {
 		return
 	}
 
-	pageNum, err := strconv.Atoi(tmp[4])
-	if err != nil {
-		return
-	}
+	// won't return error: if there is no page number, or in a wrong format (ie.,
+	//   not regex `\d+`), FindStringSubmatch(token) will not find enough entries
+	//   and will therefore return from this function with an error
+	pageNum, _ := strconv.Atoi(tmp[4])
 
 	var hasChanged bool
 	if tmp[7] == "Changed" {
@@ -116,6 +117,7 @@ func extractNote(token string) (entry Entry, err error) {
 	const timestampLayout = "01/02/2006 | 15:04"
 	timestamp, err := time.Parse(timestampLayout, tmp[8])
 	if err != nil {
+		err = TolinoError{err: ErrWrongTimeStamp, entry: token}
 		return
 	}
 

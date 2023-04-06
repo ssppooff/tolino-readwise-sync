@@ -71,6 +71,26 @@ Added on 12/21/2022 | 12:24
 
 `
 
+const noPage = `
+
+Why Work Sucks and How to Fix It: The Results-Only Revolution (Ressler, Cali)
+Highlight on page 24b: " But mostly we learn about what is normal at work by experiencing it. One of the lessons work teaches us right away—whether we’re working at a restaurant or doing grunt work in an office or mowing lawns for our neighbors—is that there is the job you do and the job you appear to be doing."
+Added on 12/21/2022 | 12:24
+
+-----------------------------------
+
+`
+
+const wrongTime = `
+
+Why Work Sucks and How to Fix It: The Results-Only Revolution (Ressler, Cali)
+Highlight on page 24: " But mostly we learn about what is normal at work by experiencing it. One of the lessons work teaches us right away—whether we’re working at a restaurant or doing grunt work in an office or mowing lawns for our neighbors—is that there is the job you do and the job you appear to be doing."
+Added on 12/21/2022 12:24
+
+-----------------------------------
+
+`
+
 func TestExtractEntries(t *testing.T) {
 	testCases := map[string]struct {
 		input string
@@ -94,8 +114,10 @@ func TestExtractEntries(t *testing.T) {
 		input  string
 		errStr TolinoErrStr
 	}{
-		"not enough entries": {input: wrongHighlight, errStr: ErrNotEnoughEntries},
-		"can't extract type": {input: noType, errStr: ErrTypeExtraction},
+		"not enough entries":     {input: wrongHighlight, errStr: ErrNotEnoughEntries},
+		"can't extract type":     {input: noType, errStr: ErrTypeExtraction},
+		"not a page number":      {input: noPage, errStr: ErrNotEnoughEntries},
+		"wrong timestamp layout": {input: wrongTime, errStr: ErrWrongTimeStamp},
 	}
 	for name, eC := range errorCases {
 		t.Run(name, func(t *testing.T) {
