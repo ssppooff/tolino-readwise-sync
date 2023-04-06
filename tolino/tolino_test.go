@@ -1,8 +1,6 @@
 package tolino
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"testing"
 )
@@ -78,7 +76,7 @@ func TestExtractEntries(t *testing.T) {
 		input string
 		num   int
 	}{
-		// "number of entries": {input: multipleHighlights, num: 2},
+		"number of entries": {input: multipleHighlights, num: 2},
 	}
 	for name, tC := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -86,14 +84,15 @@ func TestExtractEntries(t *testing.T) {
 				if err != nil {
 					t.Fatalf("%q: got and error, didn't want one: %v", name, err)
 				}
-				t.Errorf("%v, want %v", len(got), tC.num)
+
+				t.Errorf("got %v, want %v", len(got), tC.num)
 			}
 		})
 	}
 
 	errorCases := map[string]struct {
 		input  string
-		errStr string
+		errStr TolinoErrStr
 	}{
 		"not enough entries": {input: wrongHighlight, errStr: ErrNotEnoughEntries},
 		"can't extract type": {input: noType, errStr: ErrTypeExtraction},
@@ -102,13 +101,12 @@ func TestExtractEntries(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			_, err := ExtractEntries(eC.input)
 			if err == nil {
-				t.Fatalf("%q: didn't get an error, wanted one", name)
+				t.Fatal("didn't get an error, wanted one")
 			}
 
 			toErr := err.(TolinoError)
-			if toErr.err != eC.errStr {
-				fmt.Println(errors.Unwrap(err))
-				t.Errorf("%q: got %q, wanted %q", name, toErr, eC.errStr)
+			if !toErr.Is(eC.errStr) {
+				t.Errorf("got error %q, wanted error %q", toErr, eC.errStr)
 			}
 		})
 	}
@@ -151,6 +149,47 @@ func TestExtractBookList(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			if got := ExtractBooks(tC.entries); !reflect.DeepEqual(got, tC.want) {
 				t.Errorf("ExtractBookList() = %v, want %v", got, tC.want)
+			}
+		})
+	}
+}
+
+func TestTolinoError_Is(t *testing.T) {
+	toErr := TolinoError{err: ErrNotEnoughEntries}
+
+	testCases := map[string]struct {
+		errStr TolinoErrStr
+		want   bool
+	}{
+		"correct TolinoErrorStr":   {errStr: ErrNotEnoughEntries, want: true},
+		"different TolinoErrorStr": {errStr: ErrTypeExtraction, want: false},
+	}
+
+	for name, tC := range testCases {
+		t.Run(name, func(t *testing.T) {
+			if got := toErr.Is(tC.errStr); got != tC.want {
+				t.Errorf("got %v, wanted %v", got, tC.want)
+			}
+		})
+	}
+}
+
+func TestTolinoError_Error(t *testing.T) {
+	toErr := TolinoError{err: ErrTypeExtraction}
+
+	testCases := map[string]struct {
+		errStr string
+		want   bool
+	}{
+		"correct Tolino error":   {errStr: string(ErrTypeExtraction), want: true},
+		"different Tolino error": {errStr: string(ErrNotEnoughEntries), want: false},
+		"not an error string":    {errStr: "some other string", want: false},
+	}
+
+	for name, tC := range testCases {
+		t.Run(name, func(t *testing.T) {
+			if got := toErr.Error() == tC.errStr; got != tC.want {
+				t.Errorf("got %v, wanted %v", got, tC.want)
 			}
 		})
 	}

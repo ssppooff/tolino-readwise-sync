@@ -10,17 +10,23 @@ import (
 )
 
 const (
-	ErrTypeExtraction   = "couldn't extract type"
-	ErrNotEnoughEntries = "not enough entries found"
+	ErrTypeExtraction   = TolinoErrStr("couldn't extract type")
+	ErrNotEnoughEntries = TolinoErrStr("not enough entries found")
 )
 
+type TolinoErrStr string
+
 type TolinoError struct {
-	err   string
+	err   TolinoErrStr
 	entry string
 }
 
 func (e TolinoError) Error() string {
-	return e.err
+	return string(e.err)
+}
+
+func (e TolinoError) Is(errStr TolinoErrStr) bool {
+	return e.err == errStr
 }
 
 type Entry struct {
