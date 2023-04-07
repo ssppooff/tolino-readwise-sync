@@ -10,8 +10,10 @@ import (
 	"os"
 )
 
-const authURL = "https://readwise.io/api/v2/auth/"
-const highlightsURL = "https://readwise.io/api/v2/highlights/"
+const (
+	authURL       = "https://readwise.io/api/v2/auth/"
+	highlightsURL = "https://readwise.io/api/v2/highlights/"
+)
 
 func main() {
 
@@ -62,6 +64,8 @@ func writeJSONpayload(respBody io.Reader) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	body, err := io.ReadAll(respBody)
 	if err != nil {
 		return err
@@ -72,10 +76,6 @@ func writeJSONpayload(respBody io.Reader) error {
 		return err
 	}
 
-	err = f.Close()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -110,10 +110,10 @@ type Tag struct {
 	Name string
 }
 
-type List[T any] struct {
+type Page[E Highlight | Tag] struct {
 	Count          int64
 	Next, Previous string
-	Results        []T
+	Results        []E
 }
 
 func decodeJSONpayload(filename string) (string, error) {
@@ -122,9 +122,9 @@ func decodeJSONpayload(filename string) (string, error) {
 		return "", errors.Join(fmt.Errorf("decode JSON: couldn't open file %q", filename), err)
 	}
 
-	var list List[Highlight]
+	var page Page[Highlight]
 	// b2 := []byte(`{"count": 1912, "next": "url", "previous": null}`)
-	err = json.Unmarshal(payload, &list)
+	err = json.Unmarshal(payload, &page)
 
 	if err != nil {
 		return "", errors.Join(fmt.Errorf("decode JSON: couldn't unmarshal JSON"), err)
@@ -153,25 +153,28 @@ func GetHighlights(url, token string) (*http.Response, error) {
 	if err != nil {
 		return nil, errors.Join(errors.New("GetHighlights: couldn't send request"), err)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return nil, errors.Join(errors.New("GetHighlights: couldn't get highlights"), err)
-	} else {
-		if rh := resp.Header["Content-Type"]; len(rh) == 1 && rh[0] == "application/json" {
-			// body, err := io.ReadAll(resp.Body)
-			// writeJSONpayload(resp.Body)
-			decoder := json.NewDecoder(resp.Body)
-
-			var list List[Highlight]
-			err := decoder.Decode(&list)
-			if err != nil {
-				return nil, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
-			}
-			defer resp.Body.Close()
-			return nil, nil
-		}
-		return resp, errors.New("Something wrong with the response")
 	}
+
+	rh := resp.Header["Content-Type"]
+	if len(rh) != 1 || rh[0] != "application/json" {
+		return resp, fmt.Errorf("something wrong with response header: %#v", rh)
+	}
+
+	// body, err := io.ReadAll(resp.Body)
+	// writeJSONpayload(resp.Body)
+	decoder := json.NewDecoder(resp.Body)
+
+	var list Page[Highlight]
+	err = decoder.Decode(&list)
+	if err != nil {
+		return nil, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
+	}
+
+	return nil, nil
 }
 
 func readToken(filename string) (string, error) {
@@ -179,6 +182,7 @@ func readToken(filename string) (string, error) {
 	if err != nil {
 		return "", errors.Join(fmt.Errorf("readToken: couldn't open file %q", filename), err)
 	}
+	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	scanner.Scan()

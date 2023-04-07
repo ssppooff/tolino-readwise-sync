@@ -14,6 +14,7 @@ func TestCheckAPItoken(t *testing.T) {
 			w.WriteHeader(204)
 		}
 	}))
+	defer ts.Close()
 
 	t.Run("invalid token", func(t *testing.T) {
 		token := "wrong token"
@@ -44,10 +45,12 @@ func TestGetHighlights(t *testing.T) {
 	tsWrongSC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)
 	}))
+	defer tsWrongSC.Close()
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
+	defer ts.Close()
 
 	t.Run("unexpected response status code", func(t *testing.T) {
 		_, err := GetHighlights(tsWrongSC.URL, "")
