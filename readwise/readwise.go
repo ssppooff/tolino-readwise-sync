@@ -15,29 +15,7 @@ const (
 	highlightsURL = "https://readwise.io/api/v2/highlights/"
 )
 
-func main() {
-
-	token, err := readToken("token")
-	if err != nil {
-		fmt.Printf("Error: %v", err)
-		return
-	}
-
-	// auth, err := CheckAPItoken(token, authURL)
-	// if err != nil {
-	// 	fmt.Printf("Error: %v", err)
-	// 	return
-	// }
-	// fmt.Println(auth)
-
-	// _, err := decodeJSONpayload("highlights_JSON.json")
-	resp, err := GetHighlights(highlightsURL, token)
-	if err != nil {
-		fmt.Printf("Error: %v", err)
-		return
-	}
-	fmt.Println(resp)
-}
+func main() {}
 
 // GET Request to https://readwise.io/api/v2/auth/ with header: key "Authorization", value "Token XXX"
 func CheckAPItoken(token string, url string) (bool, error) {
@@ -79,26 +57,6 @@ func writeJSONpayload(respBody io.Reader) error {
 	return nil
 }
 
-/*
-	{
-		"id": 59758950,
-		"text": "The fundamental belief of metaphysicians is THE BELIEF IN ANTITHESES OF VALUES.",
-		"note": "",
-		"location": 9,
-		"location_type": "order",
-		"highlighted_at": null,
-		"url": null,
-		"color": "",
-		"updated": "2020-10-01T12:58:44.716235Z",
-		"book_id": 2608248,
-		"tags": [
-			{
-					"id": 123456,
-					"name": "philosophy"
-			},
-		]
-	}
-*/
 type Highlight struct {
 	ID, Bookd_ID         int
 	Text, Note, Location string
@@ -123,7 +81,6 @@ func decodeJSONpayload(filename string) (string, error) {
 	}
 
 	var page Page[Highlight]
-	// b2 := []byte(`{"count": 1912, "next": "url", "previous": null}`)
 	err = json.Unmarshal(payload, &page)
 
 	if err != nil {
@@ -142,39 +99,37 @@ func decodeJSONpayload(filename string) (string, error) {
 	return "", nil
 }
 
-func GetHighlights(url, token string) (*http.Response, error) {
+func GetHighlights(url, token string) (Page[Highlight], error) {
+	var list Page[Highlight]
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, errors.Join(errors.New("GetHighlights: couldn't create HTTP request"), err)
+		return list, errors.Join(errors.New("GetHighlights: couldn't create HTTP request"), err)
 	}
 
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, errors.Join(errors.New("GetHighlights: couldn't send request"), err)
+		return list, errors.Join(errors.New("GetHighlights: couldn't send request"), err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return nil, errors.Join(errors.New("GetHighlights: couldn't get highlights"), err)
+	if resp.StatusCode != http.StatusOK {
+		return list, errors.Join(errors.New("GetHighlights: couldn't get highlights"), err)
 	}
 
 	rh := resp.Header["Content-Type"]
 	if len(rh) != 1 || rh[0] != "application/json" {
-		return resp, fmt.Errorf("something wrong with response header: %#v", rh)
+		return list, fmt.Errorf("something wrong with response header: %#v", rh)
 	}
 
-	// body, err := io.ReadAll(resp.Body)
-	// writeJSONpayload(resp.Body)
 	decoder := json.NewDecoder(resp.Body)
 
-	var list Page[Highlight]
 	err = decoder.Decode(&list)
 	if err != nil {
-		return nil, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
+		return list, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
 	}
 
-	return nil, nil
+	return list, nil
 }
 
 func readToken(filename string) (string, error) {

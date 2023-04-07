@@ -1,9 +1,9 @@
 package readwise
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 )
 
@@ -42,27 +42,39 @@ func TestCheckAPItoken(t *testing.T) {
 }
 
 func TestGetHighlights(t *testing.T) {
-	tsWrongSC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(204)
-	}))
-	defer tsWrongSC.Close()
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
+		ah := r.Header["Authorization"]
+		if len(ah) != 1 {
+			return
+		}
+
+		if ah[0] == "Token wrongToken" {
+			w.WriteHeader(210)
+		}
+
+		if ah[0] == "Token validToken" {
+			w.Header().Set("Content-Type", "application/json")
+			const jsonPayload = `{"count":1, "next": null, "previous": null, "results":[{"id":100,"text":"random text"}]}`
+			w.Write([]byte(jsonPayload))
+		}
 	}))
 	defer ts.Close()
 
+	want := Page[Highlight]{Count: 1, Results: []Highlight{{ID: 100, Text: "random text"}}}
+
 	t.Run("unexpected response status code", func(t *testing.T) {
-		_, err := GetHighlights(tsWrongSC.URL, "")
+		_, err := GetHighlights(ts.URL, "wrongToken")
 		if err == nil {
 			t.Errorf("Wanted an error, didn't get one!")
 		}
 	})
 
 	t.Run("correct response status code", func(t *testing.T) {
-		resp, err := GetHighlights(ts.URL, "")
+		resp, err := GetHighlights(ts.URL, "validToken")
 		checkNoError(t, err)
-		fmt.Println(resp)
+		if !reflect.DeepEqual(resp, want) {
+			t.Errorf("wrong highlights,\ngot: %#v,\nwanted: %#v", resp, want)
+		}
 	})
 
 }
