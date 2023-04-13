@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 const (
@@ -68,7 +69,18 @@ type Tag struct {
 	Name string
 }
 
-type Page[E Highlight | Tag] struct {
+type Book struct {
+	ID                int
+	Title, Author     string
+	Source, Updated   string
+	ASIN              string
+	Num_highlights    int
+	Last_highlight_at time.Time
+	Document_note     string
+	Tags              []Tag
+}
+
+type Page[E Highlight | Tag | Book] struct {
 	Count          int64
 	Next, Previous string
 	Results        []E
@@ -130,6 +142,38 @@ func GetHighlights(url, token string) (Page[Highlight], error) {
 	}
 
 	return list, nil
+}
+
+func GetBooks(url, token string) (Page[Book], error) {
+	var page Page[Book]
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return page, errors.Join(errors.New("GetBooks: couldn't create HTTP request"), err)
+	}
+
+	setAuthHeader(token, req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return page, errors.Join(errors.New("GetBooks: couldn't send request"), err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return page, errors.Join(errors.New("GetBooks: couldn't get books"), err)
+	}
+
+	rh := resp.Header["Content-Type"]
+	if len(rh) != 1 || rh[0] != "application/json" {
+		return page, fmt.Errorf("something wrong with response header: %#v", rh)
+	}
+
+	decoder := json.NewDecoder(resp.Body)
+
+	err = decoder.Decode(&page)
+	if err != nil {
+		return page, errors.Join(errors.New("GetBooks: couldn't decode response body:"), err)
+	}
+	return page, nil
 }
 
 func readToken(filename string) (string, error) {
