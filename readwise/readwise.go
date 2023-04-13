@@ -111,69 +111,35 @@ func decodeJSONpayload(filename string) (string, error) {
 	return "", nil
 }
 
-func GetHighlights(url, token string) (Page[Highlight], error) {
-	var list Page[Highlight]
+func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return list, errors.Join(errors.New("GetHighlights: couldn't create HTTP request"), err)
+		return errors.Join(errors.New("couldn't create HTTP GET request"), err)
 	}
 
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return list, errors.Join(errors.New("GetHighlights: couldn't send request"), err)
+		return errors.Join(errors.New("couldn't send request"), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return list, errors.Join(errors.New("GetHighlights: couldn't get highlights"), err)
+		return errors.Join(errors.New("couldn't get books"), err)
 	}
 
 	rh := resp.Header["Content-Type"]
 	if len(rh) != 1 || rh[0] != "application/json" {
-		return list, fmt.Errorf("something wrong with response header: %#v", rh)
+		return fmt.Errorf("something wrong with response header: %#v", rh)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
 
-	err = decoder.Decode(&list)
+	err = decoder.Decode(page)
 	if err != nil {
-		return list, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
+		return errors.Join(errors.New("couldn't decode response body:"), err)
 	}
-
-	return list, nil
-}
-
-func GetBooks(url, token string) (Page[Book], error) {
-	var page Page[Book]
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return page, errors.Join(errors.New("GetBooks: couldn't create HTTP request"), err)
-	}
-
-	setAuthHeader(token, req)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return page, errors.Join(errors.New("GetBooks: couldn't send request"), err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return page, errors.Join(errors.New("GetBooks: couldn't get books"), err)
-	}
-
-	rh := resp.Header["Content-Type"]
-	if len(rh) != 1 || rh[0] != "application/json" {
-		return page, fmt.Errorf("something wrong with response header: %#v", rh)
-	}
-
-	decoder := json.NewDecoder(resp.Body)
-
-	err = decoder.Decode(&page)
-	if err != nil {
-		return page, errors.Join(errors.New("GetBooks: couldn't decode response body:"), err)
-	}
-	return page, nil
+	return nil
 }
 
 func readToken(filename string) (string, error) {
