@@ -139,9 +139,9 @@ func TestEntry_GetBook(t *testing.T) {
 		entry Entry
 		book  Book
 	}{
-		"correct entry":  {Entry{title: "Book title", author: "John Doe"}, Book{"Book title", "John Doe"}},
-		"missing title":  {Entry{title: "", author: "John Doe"}, Book{"", "John Doe"}},
-		"missing author": {Entry{title: "Book title", author: ""}, Book{"Book title", ""}},
+		"correct entry":  {Entry{Title: "Book title", Author: "John Doe"}, Book{"Book title", "John Doe"}},
+		"missing title":  {Entry{Title: "", Author: "John Doe"}, Book{"", "John Doe"}},
+		"missing author": {Entry{Title: "Book title", Author: ""}, Book{"Book title", ""}},
 	}
 	for name, tC := range testEntries {
 		t.Run(name, func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestExtractBookList(t *testing.T) {
 		want    []Book
 	}{
 		"name": {
-			entries: []Entry{{title: "t1", author: "a1"}, {title: "t2", author: "a2"}, {title: "t3", author: "a3"}, {title: "t4", author: "a4"}},
+			entries: []Entry{{Title: "t1", Author: "a1"}, {Title: "t2", Author: "a2"}, {Title: "t3", Author: "a3"}, {Title: "t4", Author: "a4"}},
 			want:    []Book{{"t1", "a1"}, {"t2", "a2"}, {"t3", "a3"}, {"t4", "a4"}},
 		},
 	}

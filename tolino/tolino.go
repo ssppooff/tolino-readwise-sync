@@ -31,14 +31,14 @@ func (e TolinoError) Is(errStr TolinoErrStr) bool {
 }
 
 type Entry struct {
-	title     string
-	author    string
-	entryType string
-	note      string
-	page      int
-	highlight string
-	changed   bool
-	date      time.Time
+	Highlight string
+	Note      string
+	Title     string
+	Author    string
+	EntryType string // really needed?
+	Page      int
+	Changed   bool
+	Date      time.Time
 }
 
 type Book struct {
@@ -47,11 +47,11 @@ type Book struct {
 }
 
 func (e Entry) GetBook() Book {
-	return Book{e.title, e.author}
+	return Book{e.Title, e.Author}
 }
 
 func (e Entry) isEmpty() bool {
-	if e.entryType == "" && e.title == "" && e.author == "" && e.highlight == "" {
+	if e.EntryType == "" && e.Title == "" && e.Author == "" && e.Highlight == "" {
 		return true
 	}
 
@@ -115,21 +115,22 @@ func extractNote(token string) (entry Entry, err error) {
 	}
 
 	const timestampLayout = "01/02/2006 | 15:04"
-	timestamp, err := time.Parse(timestampLayout, tmp[8])
+	timestamp, err := time.ParseInLocation(timestampLayout, tmp[8], time.Local)
 	if err != nil {
 		err = TolinoError{err: ErrWrongTimeStamp, entry: token}
 		return
 	}
+	timestamp = timestamp.Local()
 
 	entry = Entry{
-		title:     tmp[1],
-		author:    tmp[2],
-		entryType: tmp[3],
-		page:      pageNum,
-		note:      strings.TrimSpace(tmp[5]),
-		highlight: tmp[6],
-		changed:   hasChanged,
-		date:      timestamp,
+		Title:     tmp[1],
+		Author:    tmp[2],
+		EntryType: tmp[3],
+		Page:      pageNum,
+		Note:      tmp[5],
+		Highlight: tmp[6],
+		Changed:   hasChanged,
+		Date:      timestamp,
 	}
 
 	return
