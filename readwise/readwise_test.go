@@ -1,6 +1,7 @@
 package readwise
 
 import (
+	// "fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -45,7 +46,7 @@ func TestCheckAPItoken(t *testing.T) {
 	})
 }
 
-func TestGetPage(t *testing.T) {
+func TestGetPageParams(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ah := r.Header["Authorization"]
 		if len(ah) != 1 {
@@ -63,35 +64,40 @@ func TestGetPage(t *testing.T) {
 		}
 
 		if ah[0] == "Token validBookToken" {
-			w.Header().Set("Content-Type", "application/json")
-			const jsonPayload = `{"count":1, "next": null, "previous": null, "results":[{"id":100, "title":"Random Title", "author": "John Doe", "num_highlights": 68, "last_highlight_at": "2020-10-01T17:47:31.234826Z", "asin": "B0046LU7H0"}]}`
-			w.Write([]byte(jsonPayload))
+			body, _ := io.ReadAll(r.Body)
+			defer r.Body.Close()
+
+			if string(body) == `{"source": "appID"}` {
+				w.Header().Set("Content-Type", "application/json")
+				const jsonPayload = `{"count":1, "next": null, "previous": null, "results":[{"id":100, "title":"Random Title", "author": "John Doe", "num_highlights": 68, "last_highlight_at": "2020-10-01T17:47:31.234826Z", "asin": "B0046LU7H0"}]}`
+				w.Write([]byte(jsonPayload))
+			}
 		}
 	}))
 	defer ts.Close()
 
 	t.Run("unexpected response status code", func(t *testing.T) {
-		err := GetPage(&Page[Highlight]{}, ts.URL, "wrongToken")
+		err := GetPageParams(&Page[Highlight]{}, ts.URL, "wrongToken", "")
 		if err == nil {
 			t.Errorf("Wanted an error, didn't get one!")
 		}
 	})
 
-	t.Run("get highlight", func(t *testing.T) {
+	t.Run("get highlight, no parameters", func(t *testing.T) {
 		want := Page[Highlight]{Count: 1, Results: []Highlight{{
 			ID:   100,
 			Text: "random text",
 		}}}
 
 		var page Page[Highlight]
-		err := GetPage(&page, ts.URL, "validHighlightToken")
+		err := GetPageParams(&page, ts.URL, "validHighlightToken", "")
 		checkNoError(t, err)
 		if !reflect.DeepEqual(page, want) {
 			t.Errorf("wrong page,\ngot   : %#v,\nwanted: %#v", page, want)
 		}
 	})
 
-	t.Run("get book", func(t *testing.T) {
+	t.Run("get book, parameter source", func(t *testing.T) {
 		hlTime, err := time.Parse(time.RFC3339, "2020-10-01T17:47:31.234826Z")
 		if err != nil {
 			t.Fatalf("couldn't parse time string: %#v", err)
@@ -107,7 +113,7 @@ func TestGetPage(t *testing.T) {
 		}}}
 
 		var page Page[Book]
-		err = GetPage(&page, ts.URL, "validBookToken")
+		err = GetPageParams(&page, ts.URL, "validBookToken", `{"source": "appID"}`)
 		checkNoError(t, err)
 		if !reflect.DeepEqual(page, want) {
 			t.Errorf("wrong page,\ngot   : %#v,\nwanted: %#v", page, want)
@@ -139,7 +145,7 @@ func TestCreateHighlight(t *testing.T) {
 			body, _ := io.ReadAll(r.Body)
 			defer r.Body.Close()
 
-			const jsonPayload = `{"Highlights":[{"Text":"Some Text","Note":null,"Title":"Title1","Author":"John Doe","Location":null,"Location_type":null,"Source_type":"app_ID1","Category":"books","Highlighted_at":null},{"Text":"Some more text","Note":"some note","Title":"Title2","Author":"John Smith","Location":null,"Location_type":null,"Source_type":"app_ID2","Category":"books","Highlighted_at":null}]}`
+			const jsonPayload = `{"Highlights":[{"Text":"Some Text","Note":"","Title":"Title1","Author":"John Doe","Location":null,"Location_type":null,"Source_type":"app_ID1","Category":"books","Highlighted_at":null},{"Text":"Some more text","Note":"some note","Title":"Title2","Author":"John Smith","Location":null,"Location_type":null,"Source_type":"app_ID2","Category":"books","Highlighted_at":null}]}`
 			if string(body) != jsonPayload {
 				w.WriteHeader(http.StatusBadRequest)
 				return

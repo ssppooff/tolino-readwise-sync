@@ -15,6 +15,7 @@ import (
 const (
 	AuthURL       = "https://readwise.io/api/v2/auth/"
 	HighlightsURL = "https://readwise.io/api/v2/highlights/"
+	BooksURL      = "https://readwise.io/api/v2/books/"
 )
 
 func main() {}
@@ -114,7 +115,16 @@ func decodeJSONpayload(filename string) (string, error) {
 }
 
 func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	return GetPageParams(page, url, token, "")
+}
+
+func GetPageParams[E Highlight | Book](page *Page[E], url, token, jsonParams string) error {
+	var body io.Reader
+	if jsonParams != "" {
+		body = bytes.NewReader([]byte(jsonParams))
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, body)
 	if err != nil {
 		return errors.Join(errors.New("couldn't create HTTP GET request"), err)
 	}
@@ -192,7 +202,7 @@ func CreateHighlights(hls []HlCreate, url, token string) error {
 	got := []Book{}
 	err = json.NewDecoder(resp.Body).Decode(&got)
 	if err != nil {
-		return errors.Join(errors.New("couldn't decode response body:"), err)
+		return errors.Join(errors.New("couldn't decode response body"), err)
 	}
 
 	if !reflect.DeepEqual(got, want) {
