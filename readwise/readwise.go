@@ -1,7 +1,6 @@
 package readwise
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -140,22 +139,6 @@ func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
 		return errors.Join(errors.New("couldn't decode response body:"), err)
 	}
 	return nil
-}
-
-func readToken(filename string) (string, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return "", errors.Join(fmt.Errorf("readToken: couldn't open file %q", filename), err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	scanner.Scan()
-	token := scanner.Text()
-	if err := scanner.Err(); err != nil {
-		return "", errors.Join(errors.New("readToken: error while scanning for token"), err)
-	}
-	return token, nil
 }
 
 func setAuthHeader(token string, r *http.Request) *http.Request {

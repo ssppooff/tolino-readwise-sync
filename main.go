@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
 	"time"
 
 	//"github.com/ssppooff/tolino-readwise-sync/readwise"
@@ -11,6 +15,22 @@ import (
 func main() {}
 
 const appIdentifier = "tolino-sync"
+
+func readToken(filename string) (string, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return "", errors.Join(fmt.Errorf("readToken: couldn't open file %q", filename), err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	scanner.Scan()
+	token := scanner.Text()
+	if err := scanner.Err(); err != nil {
+		return "", errors.Join(errors.New("readToken: error while scanning for token"), err)
+	}
+	return token, nil
+}
 
 type HlCreate struct {
 	Text           string
