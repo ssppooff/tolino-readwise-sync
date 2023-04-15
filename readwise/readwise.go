@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	authURL       = "https://readwise.io/api/v2/auth/"
-	highlightsURL = "https://readwise.io/api/v2/highlights/"
+	AuthURL       = "https://readwise.io/api/v2/auth/"
+	HighlightsURL = "https://readwise.io/api/v2/highlights/"
 )
 
 func main() {}

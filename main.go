@@ -5,16 +5,44 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
-	//"github.com/ssppooff/tolino-readwise-sync/readwise"
+	"github.com/ssppooff/tolino-readwise-sync/readwise"
 	"github.com/ssppooff/tolino-readwise-sync/tolino"
+	"github.com/ssppooff/tolino-readwise-sync/utils"
 )
 
-func main() {}
-
 const appIdentifier = "tolino-sync"
+
+/*
+1. parse Tolino file
+2. Filter for only new highlights
+3. check API token
+4. Transform new Tolino Highlights into compatible Readwise highlights, add "Tolino" as source
+5. Upload all highlights to Readwise
+*/
+func main() {
+	tolino_file := "path to tolino notes.txt file"
+	file, _ := os.Open(tolino_file)
+	defer file.Close()
+
+	bytes, _ := io.ReadAll(file)
+	entries, _ := tolino.ExtractEntries(string(bytes))
+	entries, _ = utils.Filter(entries, func(te tolino.Entry) bool { return te.Changed == false })
+
+	filename := "path_to_token_file"
+	token, _ := readToken(filename)
+	ok, _ := readwise.CheckAPItoken(token, readwise.AuthURL)
+	if !ok {
+		return
+	}
+
+	// TODO refactor: don't give JSON to readwise package
+	jsonPayload, _ := Convert(entries)
+	readwise.CreateHighlight(jsonPayload)
+}
 
 func readToken(filename string) (string, error) {
 	file, err := os.Open(filename)
