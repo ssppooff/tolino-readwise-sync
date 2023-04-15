@@ -42,3 +42,7 @@ func Not[T any](fn func(T) bool) func(T) bool {
 		return !fn(e)
 	}
 }
+
+func Ptr[T any](v T) *T {
+	return &v
+}
