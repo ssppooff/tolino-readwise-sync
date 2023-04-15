@@ -80,7 +80,7 @@ func ExtractEntries(input string) (entries []Entry, err error) {
 		return Entry{}, nil
 	})
 
-	entries = utils.Filter(entries, utils.Not(Entry.isEmpty))
+	_, entries = utils.Filter(entries, Entry.isEmpty)
 	return
 }
 

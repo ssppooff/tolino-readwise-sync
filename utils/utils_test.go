@@ -52,11 +52,16 @@ func TestMapWithErr(t *testing.T) {
 func TestFilter(t *testing.T) {
 	testPredicat := func(i int) bool { return i%2 == 0 }
 	inSlice := []int{1, 2, 3, 4, 5, 6}
-	want := []int{2, 4, 6}
+	wantPos := []int{2, 4, 6}
+	wantNeg := []int{1, 3, 5}
 
 	t.Run("correct filter", func(t *testing.T) {
-		if got := Filter(inSlice, testPredicat); !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, wanted %v", got, want)
+		gotPos, gotNeg := Filter(inSlice, testPredicat)
+		if !reflect.DeepEqual(gotPos, wantPos) {
+			t.Errorf("got %v, wanted %v", gotPos, wantPos)
+		}
+		if !reflect.DeepEqual(gotNeg, wantNeg) {
+			t.Errorf("got %v, wanted %v", gotNeg, wantNeg)
 		}
 	})
 }

@@ -22,14 +22,18 @@ func MapWithErr[E any, O any](sl []E, fn func(E) (O, error)) ([]O, error) {
 	return res, nil
 }
 
-func Filter[T any](sl []T, p func(T) bool) (res []T) {
+func Filter[T any](sl []T, p func(T) bool) ([]T, []T) {
+	posRes := []T{}
+	negRes := []T{}
 	for _, el := range sl {
 		if p(el) {
-			res = append(res, el)
+			posRes = append(posRes, el)
+		} else {
+			negRes = append(negRes, el)
 		}
 	}
 
-	return
+	return posRes, negRes
 }
 
 // TODO Generics
