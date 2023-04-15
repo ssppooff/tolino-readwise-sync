@@ -1,11 +1,14 @@
 package readwise
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ssppooff/tolino-readwise-sync/utils"
 )
 
 func TestCheckAPItoken(t *testing.T) {
@@ -75,7 +78,10 @@ func TestGetPage(t *testing.T) {
 	})
 
 	t.Run("get highlight", func(t *testing.T) {
-		want := Page[Highlight]{Count: 1, Results: []Highlight{{ID: 100, Text: "random text"}}}
+		want := Page[Highlight]{Count: 1, Results: []Highlight{{
+			ID:   100,
+			Text: "random text",
+		}}}
 
 		var page Page[Highlight]
 		err := GetPage(&page, ts.URL, "validHighlightToken")
@@ -91,7 +97,8 @@ func TestGetPage(t *testing.T) {
 			t.Fatalf("couldn't parse time string: %#v", err)
 		}
 
-		want := Page[Book]{Count: 1, Results: []Book{{ID: 100,
+		want := Page[Book]{Count: 1, Results: []Book{{
+			ID:                100,
 			Title:             "Random Title",
 			Author:            "John Doe",
 			Num_highlights:    68,
@@ -113,4 +120,60 @@ func checkNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Fatalf("Got an error, didn't want one: %v", err)
 	}
+}
+
+func TestCreateHighlight(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ah := r.Header["Authorization"]
+		if len(ah) != 1 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if ah[0] == "Token wrongToken" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		if ah[0] == "Token validToken" {
+			body, _ := io.ReadAll(r.Body)
+			defer r.Body.Close()
+
+			const jsonPayload = `{"Highlights":[{"Text":"Some Text","Note":null,"Title":"Title1","Author":"John Doe","Location":null,"Location_type":null,"Source_type":"app_ID1","Category":"books","Highlighted_at":null},{"Text":"Some more text","Note":"some note","Title":"Title2","Author":"John Smith","Location":null,"Location_type":null,"Source_type":"app_ID2","Category":"books","Highlighted_at":null}]}`
+			if string(body) != jsonPayload {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			// API call returns list of created/updated books/articles/podcasts
+			w.Header().Set("Content-Type", "application/json")
+			const respJSON = `[{"title": "Title1", "author": "John Doe", "source": "app_ID1", "category": "books"}, {"title": "Title2", "author": "John Smith", "source": "app_ID2", "category": "books"}]`
+			w.Write([]byte(respJSON))
+		}
+	}))
+	defer ts.Close()
+
+	hls := []HlCreate{
+		{
+			Text:        "Some Text",
+			Note:        "",
+			Title:       utils.Ptr("Title1"),
+			Author:      utils.Ptr("John Doe"),
+			Category:    utils.Ptr("books"),
+			Source_type: utils.Ptr("app_ID1")},
+		{
+			Text:        "Some more text",
+			Note:        "some note",
+			Title:       utils.Ptr("Title2"),
+			Author:      utils.Ptr("John Smith"),
+			Category:    utils.Ptr("books"),
+			Source_type: utils.Ptr("app_ID2")}}
+
+	t.Run("positive answer", func(t *testing.T) {
+		token := "validToken"
+
+		// Both highlights together should create 2 new books: Title1, by John Doe & Title2, by John Smith
+		err := CreateHighlights(hls, ts.URL, token)
+		checkNoError(t, err)
+	})
 }

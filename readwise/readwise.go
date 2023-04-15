@@ -1,12 +1,14 @@
 package readwise
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"reflect"
 	"time"
 )
 
@@ -77,6 +79,7 @@ type Book struct {
 	Last_highlight_at time.Time
 	Document_note     string
 	Tags              []Tag
+	Category          string
 }
 
 type Page[E Highlight | Tag | Book] struct {
@@ -119,12 +122,12 @@ func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Join(errors.New("couldn't send request"), err)
+		return errors.Join(errors.New("couldn't send GET request"), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Join(errors.New("couldn't get books"), err)
+		return errors.Join(errors.New("couldn't get page"), err)
 	}
 
 	rh := resp.Header["Content-Type"]
@@ -132,9 +135,7 @@ func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
 		return fmt.Errorf("something wrong with response header: %#v", rh)
 	}
 
-	decoder := json.NewDecoder(resp.Body)
-
-	err = decoder.Decode(page)
+	err = json.NewDecoder(resp.Body).Decode(page)
 	if err != nil {
 		return errors.Join(errors.New("couldn't decode response body:"), err)
 	}
@@ -144,4 +145,71 @@ func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
 func setAuthHeader(token string, r *http.Request) *http.Request {
 	r.Header.Set("Authorization", fmt.Sprintf("Token %s", token))
 	return r
+}
+
+// Values not required by API call are pointer to base type
+type HlCreate struct {
+	Text           string
+	Note           string
+	Title, Author  *string
+	Location       *int
+	Location_type  *string
+	Source_type    *string // app identifier
+	Category       *string
+	Highlighted_at *string // ISO 8601
+}
+
+func CreateHighlights(hls []HlCreate, url, token string) error {
+	var payload = struct{ Highlights []HlCreate }{Highlights: hls}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return errors.Join(errors.New("error while converting highlights to JSON"))
+	}
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return errors.Join(errors.New("couldn't create HTTP POST request"), err)
+	}
+
+	setAuthHeader(token, req)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return errors.Join(errors.New("couldn't send POST request"), err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Join(errors.New("received error after trying creating highlights on Readwise"), err)
+	}
+
+	rh := resp.Header["Content-Type"]
+	if len(rh) != 1 || rh[0] != "application/json" {
+		return fmt.Errorf("something wrong with response header: %#v", rh)
+	}
+
+	want := extractBooksFromHighlights(hls)
+	got := []Book{}
+	err = json.NewDecoder(resp.Body).Decode(&got)
+	if err != nil {
+		return errors.Join(errors.New("couldn't decode response body:"), err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		return errors.New("response does not correspond to what is expected")
+	}
+
+	return nil
+}
+
+func extractBooksFromHighlights(hls []HlCreate) (books []Book) {
+	for _, hl := range hls {
+		books = append(books, Book{
+			Author:   *hl.Author,
+			Title:    *hl.Title,
+			Source:   *hl.Source_type,
+			Category: *hl.Category,
+		})
+	}
+	return
 }
