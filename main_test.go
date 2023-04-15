@@ -1,35 +1,51 @@
 package main
 
 import (
-	// "encoding/json"
-	// "encoding/json"
-	// "fmt"
 	"testing"
 	"time"
 
+	"github.com/ssppooff/tolino-readwise-sync/readwise"
 	"github.com/ssppooff/tolino-readwise-sync/tolino"
+	"github.com/ssppooff/tolino-readwise-sync/utils"
 )
 
 func TestConvert(t *testing.T) {
 	tmpTime, _ := time.ParseInLocation(time.DateTime, "2022-09-01 21:36:00", time.Local)
-	var te1 = tolino.Entry{Title: "Random Title", Author: "Random Author", Page: 33, Note: "Some Note", Highlight: "High Text", Changed: false, Date: tmpTime}
-	var te2 = tolino.Entry{Title: "Another Random Title", Author: "Random Author", Page: 73, Note: "Some Note", Highlight: "High Text", Changed: false, Date: tmpTime.Add(time.Hour * 1)}
+	var te = tolino.Entry{
+		Title:     "Random Title",
+		Author:    "Random Author",
+		Page:      33,
+		Note:      "Some Note",
+		Highlight: "High Text",
+		Changed:   false,
+		Date:      tmpTime,
+	}
 
-	t.Run("single entry", func(t *testing.T) {
-		got := Convert([]tolino.Entry{te1})
-		want := `{"Highlights":[{"Text":"High Text","Note":"Some Note","Title":"Random Title","Author":"Random Author","Location":33,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T21:36:00+02:00"}]}`
+	want := readwise.HlCreate{
+		Text:           "High text",
+		Note:           "Some Note",
+		Title:          utils.Ptr("Random Title"),
+		Author:         utils.Ptr("Random Author"),
+		Location:       utils.Ptr(33),
+		Location_type:  utils.Ptr("page"),
+		Source_type:    utils.Ptr(appIdentifier),
+		Category:       utils.Ptr("books"),
+		Highlighted_at: utils.Ptr(tmpTime.Format(time.RFC3339)),
+	}
+	got := Convert(te)
 
-		if got != want {
-			t.Errorf("\ngot : %q,\nwant: %q", got, want)
-		}
-	})
+	if checkHlCreate(t, got, want) {
+		t.Errorf("\ngot : %v,\nwant: %v", got, want)
+	}
+}
 
-	t.Run("multiple entries", func(t *testing.T) {
-		got := Convert([]tolino.Entry{te1, te2})
-		want := `{"Highlights":[{"Text":"High Text","Note":"Some Note","Title":"Random Title","Author":"Random Author","Location":33,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T21:36:00+02:00"},{"Text":"High Text","Note":"Some Note","Title":"Another Random Title","Author":"Random Author","Location":73,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T22:36:00+02:00"}]}`
-
-		if got != want {
-			t.Errorf("\ngot : %q,\nwant: %q", got, want)
-		}
-	})
+func checkHlCreate(t *testing.T, got, want readwise.HlCreate) bool {
+	t.Helper()
+	return got.Text == want.Text &&
+		got.Note == want.Note &&
+		*got.Title == *want.Title &&
+		*got.Author == *want.Author &&
+		*got.Location == *want.Location &&
+		*got.Source_type == appIdentifier &&
+		*got.Highlighted_at == *want.Highlighted_at
 }

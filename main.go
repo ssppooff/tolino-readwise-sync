@@ -19,7 +19,7 @@ const appIdentifier = "tolino-sync"
 1. parse Tolino file
 2. Filter for only new highlights
 3. check API token
-4. Transform new Tolino Highlights into compatible Readwise highlights, add "Tolino" as source
+4. Transform new Tolino Highlights into compatible Readwise highlights, add content of 'appIdentifier' as source
 5. Upload all highlights to Readwise
 */
 func main() {
@@ -38,8 +38,7 @@ func main() {
 		return
 	}
 
-	// TODO refactor: don't give JSON to readwise package
-	err := readwise.CreateHighlights(Convert(entries), readwise.HighlightsURL, token)
+	err := readwise.CreateHighlights(utils.Map(entries, Convert), readwise.HighlightsURL, token)
 	if err != nil {
 		return
 	}
@@ -62,23 +61,16 @@ func readToken(filename string) (string, error) {
 }
 
 // Sets the 'location_type' to 'page', 'category' to 'books', and 'source_type' to the content of the constant 'appIdentifier'
-func Convert(tes []tolino.Entry) []readwise.HlCreate {
-	hls := []readwise.HlCreate{}
-
-	for _, te := range tes {
-		var tmp = readwise.HlCreate{
-			Text:           te.Highlight,
-			Note:           te.Note,
-			Title:          &te.Title,
-			Author:         &te.Author,
-			Location:       &te.Page,
-			Location_type:  utils.Ptr("page"),
-			Source_type:    utils.Ptr(appIdentifier),
-			Category:       utils.Ptr("books"),
-			Highlighted_at: utils.Ptr(te.Date.Format(time.RFC3339)),
-		}
-		hls = append(hls, tmp)
+func Convert(te tolino.Entry) readwise.HlCreate {
+	return readwise.HlCreate{
+		Text:           te.Highlight,
+		Note:           te.Note,
+		Title:          &te.Title,
+		Author:         &te.Author,
+		Location:       &te.Page,
+		Location_type:  utils.Ptr("page"),
+		Source_type:    utils.Ptr(appIdentifier),
+		Category:       utils.Ptr("books"),
+		Highlighted_at: utils.Ptr(te.Date.Format(time.RFC3339)),
 	}
-
-	return hls
 }
