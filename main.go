@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -40,8 +39,10 @@ func main() {
 	}
 
 	// TODO refactor: don't give JSON to readwise package
-	jsonPayload, _ := Convert(entries)
-	readwise.CreateHighlight(jsonPayload)
+	err := readwise.CreateHighlights(Convert(entries), readwise.HighlightsURL, token)
+	if err != nil {
+		return
+	}
 }
 
 func readToken(filename string) (string, error) {
@@ -60,43 +61,24 @@ func readToken(filename string) (string, error) {
 	return token, nil
 }
 
-type HlCreate struct {
-	Text           string
-	Note           string
-	Title, Author  string
-	Location       int    // page number
-	Location_type  string // always page
-	Source_type    string // app identifier
-	Category       string // always books
-	Highlighted_at string // ISO 8601
-}
-
-// Convert converts multiple Tolino entries into a JSON string suitable for sending to API call Highlight CREATE
-//
 // Sets the 'location_type' to 'page', 'category' to 'books', and 'source_type' to the content of the constant 'appIdentifier'
-func Convert(tes []tolino.Entry) (string, error) {
-	type payload struct{ Highlights []HlCreate }
-	var p = payload{}
+func Convert(tes []tolino.Entry) []readwise.HlCreate {
+	hls := []readwise.HlCreate{}
 
 	for _, te := range tes {
-		var tmp = HlCreate{
+		var tmp = readwise.HlCreate{
 			Text:           te.Highlight,
 			Note:           te.Note,
-			Title:          te.Title,
-			Author:         te.Author,
-			Location:       te.Page,
-			Location_type:  "page",
-			Source_type:    appIdentifier,
-			Category:       "books",
-			Highlighted_at: te.Date.Format(time.RFC3339),
+			Title:          &te.Title,
+			Author:         &te.Author,
+			Location:       &te.Page,
+			Location_type:  utils.Ptr("page"),
+			Source_type:    utils.Ptr(appIdentifier),
+			Category:       utils.Ptr("books"),
+			Highlighted_at: utils.Ptr(te.Date.Format(time.RFC3339)),
 		}
-		p.Highlights = append(p.Highlights, tmp)
+		hls = append(hls, tmp)
 	}
 
-	b, err := json.Marshal(p)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
+	return hls
 }

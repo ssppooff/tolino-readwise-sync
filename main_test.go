@@ -16,12 +16,8 @@ func TestConvert(t *testing.T) {
 	var te2 = tolino.Entry{Title: "Another Random Title", Author: "Random Author", Page: 73, Note: "Some Note", Highlight: "High Text", Changed: false, Date: tmpTime.Add(time.Hour * 1)}
 
 	t.Run("single entry", func(t *testing.T) {
-		got, err := Convert([]tolino.Entry{te1})
+		got := Convert([]tolino.Entry{te1})
 		want := `{"Highlights":[{"Text":"High Text","Note":"Some Note","Title":"Random Title","Author":"Random Author","Location":33,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T21:36:00+02:00"}]}`
-
-		if err != nil {
-			t.Fatalf("got an error, didn't want one: %v", err)
-		}
 
 		if got != want {
 			t.Errorf("\ngot : %q,\nwant: %q", got, want)
@@ -29,12 +25,8 @@ func TestConvert(t *testing.T) {
 	})
 
 	t.Run("multiple entries", func(t *testing.T) {
-		got, err := Convert([]tolino.Entry{te1, te2})
+		got := Convert([]tolino.Entry{te1, te2})
 		want := `{"Highlights":[{"Text":"High Text","Note":"Some Note","Title":"Random Title","Author":"Random Author","Location":33,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T21:36:00+02:00"},{"Text":"High Text","Note":"Some Note","Title":"Another Random Title","Author":"Random Author","Location":73,"Location_type":"page","Source_type":"tolino-sync","Category":"books","Highlighted_at":"2022-09-01T22:36:00+02:00"}]}`
-
-		if err != nil {
-			t.Fatalf("got an error, didn't want one: %v", err)
-		}
 
 		if got != want {
 			t.Errorf("\ngot : %q,\nwant: %q", got, want)
