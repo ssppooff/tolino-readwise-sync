@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
+	"strconv"
 	"time"
 )
 
@@ -114,21 +116,37 @@ func decodeJSONpayload(filename string) (string, error) {
 	return "", nil
 }
 
-func GetPage[E Highlight | Book](page *Page[E], url, token string) error {
-	return GetPageParams(page, url, token, "")
-}
-
-func GetPageParams[E Highlight | Book](page *Page[E], url, token, jsonParams string) error {
-	var body io.Reader
-	if jsonParams != "" {
-		body = bytes.NewReader([]byte(jsonParams))
+// Gotcha: parameters will be modified inside function
+func GetAll[E Highlight | Book](sl *[]E, apiURL, token string, parameters *url.Values) error {
+	var page = Page[E]{}
+	var pageCount = 1
+	err := GetPageParams(&page, apiURL, token, parameters)
+	if err != nil {
+		return errors.Join(errors.New("error while fetching pages"), err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, url, body)
+	(*sl) = append((*sl), page.Results...)
+	for page.Next != "" {
+		pageCount += 1
+		(*parameters).Set("page", strconv.Itoa(pageCount))
+		page = Page[E]{}
+		err = GetPageParams(&page, apiURL, token, parameters)
+		if err != nil {
+			return errors.Join(errors.New("error while fetching pages"), err)
+		}
+		(*sl) = append((*sl), page.Results...)
+	}
+
+	return nil
+}
+
+func GetPageParams[E Highlight | Book](page *Page[E], url, token string, parameters *url.Values) error {
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return errors.Join(errors.New("couldn't create HTTP GET request"), err)
 	}
 
+	req.URL.RawQuery = (*parameters).Encode()
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

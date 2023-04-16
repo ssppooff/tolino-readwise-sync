@@ -1,10 +1,10 @@
 package readwise
 
 import (
-	// "fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
@@ -64,12 +64,11 @@ func TestGetPageParams(t *testing.T) {
 		}
 
 		if ah[0] == "Token validBookToken" {
-			body, _ := io.ReadAll(r.Body)
-			defer r.Body.Close()
-
-			if string(body) == `{"source": "appID"}` {
+			url := r.URL
+			q := url.Query()
+			if reflect.DeepEqual(q["source"], []string{"appID"}) {
 				w.Header().Set("Content-Type", "application/json")
-				const jsonPayload = `{"count":1, "next": null, "previous": null, "results":[{"id":100, "title":"Random Title", "author": "John Doe", "num_highlights": 68, "last_highlight_at": "2020-10-01T17:47:31.234826Z", "asin": "B0046LU7H0"}]}`
+				const jsonPayload = `{"count":1, "next": null, "previous": null, "results":[{"id":100, "title":"Random Title", "author": "John Doe", "category": "books", "source": "appID", "num_highlights": 68, "last_highlight_at": "2020-10-01T17:47:31.234826Z", "asin": "B0046LU7H0"}]}`
 				w.Write([]byte(jsonPayload))
 			}
 		}
@@ -77,7 +76,8 @@ func TestGetPageParams(t *testing.T) {
 	defer ts.Close()
 
 	t.Run("unexpected response status code", func(t *testing.T) {
-		err := GetPageParams(&Page[Highlight]{}, ts.URL, "wrongToken", "")
+		params := url.Values{}
+		err := GetPageParams(&Page[Highlight]{}, ts.URL, "wrongToken", &params)
 		if err == nil {
 			t.Errorf("Wanted an error, didn't get one!")
 		}
@@ -90,7 +90,8 @@ func TestGetPageParams(t *testing.T) {
 		}}}
 
 		var page Page[Highlight]
-		err := GetPageParams(&page, ts.URL, "validHighlightToken", "")
+		params := url.Values{}
+		err := GetPageParams(&page, ts.URL, "validHighlightToken", &params)
 		checkNoError(t, err)
 		if !reflect.DeepEqual(page, want) {
 			t.Errorf("wrong page,\ngot   : %#v,\nwanted: %#v", page, want)
@@ -107,13 +108,16 @@ func TestGetPageParams(t *testing.T) {
 			ID:                100,
 			Title:             "Random Title",
 			Author:            "John Doe",
+			Category:          "books",
+			Source:            "appID",
 			Num_highlights:    68,
 			Last_highlight_at: hlTime,
 			ASIN:              "B0046LU7H0",
 		}}}
 
 		var page Page[Book]
-		err = GetPageParams(&page, ts.URL, "validBookToken", `{"source": "appID"}`)
+		params := url.Values{"source": {"appID"}}
+		err = GetPageParams(&page, ts.URL, "validBookToken", &params)
 		checkNoError(t, err)
 		if !reflect.DeepEqual(page, want) {
 			t.Errorf("wrong page,\ngot   : %#v,\nwanted: %#v", page, want)
