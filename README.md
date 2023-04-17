@@ -8,22 +8,21 @@ For Kindle devices, it supports importing directly from your [highlights page on
 
 However, there is no import mechanism for Tolino devices, which are available in many parts of Europe (see [Wikipedia DE - Tolino](https://de.wikipedia.org/wiki/Tolino), and especially popular in German speaking countries (namely Germany, Austria, parts of Switzerland). Even though Tolino devices also use a local file to save highlights and annotations, its structure is different from Kindle's `My Clippings.txt`. And there is a cloud & app system available similar to Amazon's, however, it does not present your highlights and annotations on one page.
 
+However, Readwise provides an [API](https://readwise.io/api_deets) which manages an account's highlights.
+
 ## Current state
 - Mass upload of highlights & notes, irrespective of whether they have been already added
- or changed on the Tolino
-
+ or changed on the Tolino (Readwise does de-duplication based on `title/author/text/source_url`)
+ 
 ## Usage
 - Get your API token [readwise.io/access_token](https://readwise.io/access_token) (subscription or trial necessary)
 - Demo data Tolino `notes.txt` included in repo
-
-## Implementation
-Readwise provides an [API](https://readwise.io/api_deets) which manages an account's highlights.
+- Read help message from CLI for which flags to use
 
 ## Roadmap/Milestones
-1. Upload only highlights & notes marked as new by Tolino (current)
-2. Upload all highlights & notes, including those marked new (Readwise does de-dupe based on `title/author/text/source_url`)
-3. Don't add highlights & notes if they are already on Readwise
-4. Like previous version, but if a note or highlight has been marked as modified on the Tolino, add corresponding metadata to Readwise
+1. Upload highlights & notes mode on your Tolino (done)
+2. Don't add highlights & notes if they are already on Readwise
+3. Like previous version, but if a note or highlight has been marked as modified on the Tolino, add corresponding metadata to Readwise
 
 ### Possible Features, depending on feasability
 - Detect if a highlight has been deleted on the Tolino, delete it on Readwise (or make it an option to do so)
@@ -32,4 +31,3 @@ Readwise provides an [API](https://readwise.io/api_deets) which manages an accou
 
 ## TODO
 - Improve test coverage
-- Package as CLI tool
