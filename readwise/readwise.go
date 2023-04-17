@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -200,6 +200,7 @@ func CreateHighlights(hls []HlCreate, url, token string) error {
 		return errors.Join(errors.New("couldn't create HTTP POST request"), err)
 	}
 
+	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -211,9 +212,10 @@ func CreateHighlights(hls []HlCreate, url, token string) error {
 		return errors.Join(errors.New("received error after trying creating highlights on Readwise"), err)
 	}
 
-	rh := resp.Header["Content-Type"]
-	if len(rh) != 1 || rh[0] != "application/json" {
-		return fmt.Errorf("something wrong with response header: %#v", rh)
+	ct := resp.Header["Content-Type"]
+	if len(ct) != 1 || !strings.Contains(ct[0], "application/json") {
+		err = fmt.Errorf("something wrong with response header or content-type: %#v", ct)
+		return
 	}
 
 	want := extractBooksFromHighlights(hls)

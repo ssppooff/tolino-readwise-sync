@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -146,6 +147,12 @@ func TestCreateHighlight(t *testing.T) {
 		}
 
 		if ah[0] == "Token validToken" {
+			ct := r.Header.Get("Content-Type")
+			if !strings.Contains(ct, "application/json") {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
 			body, _ := io.ReadAll(r.Body)
 			defer r.Body.Close()
 
@@ -156,7 +163,7 @@ func TestCreateHighlight(t *testing.T) {
 			}
 
 			// API call returns list of created/updated books/articles/podcasts
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 			const respJSON = `[{"title": "Title1", "author": "John Doe", "source": "app_ID1", "category": "books"}, {"title": "Title2", "author": "John Smith", "source": "app_ID2", "category": "books"}]`
 			w.Write([]byte(respJSON))
 		}
