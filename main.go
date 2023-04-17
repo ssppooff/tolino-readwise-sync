@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/alexflint/go-arg"
 	"github.com/ssppooff/tolino-readwise-sync/readwise"
 	"github.com/ssppooff/tolino-readwise-sync/tolino"
 	"github.com/ssppooff/tolino-readwise-sync/utils"
@@ -16,34 +16,54 @@ import (
 
 const appIdentifier = "tolino-sync"
 
-/*
-1. parse Tolino file
-2. Filter for only new highlights
-3. check API token
-4. Transform new Tolino Highlights into compatible Readwise highlights, add content of 'appIdentifier' as source
-5. Upload all highlights to Readwise
-*/
+type args struct {
+	TokenFile  string `arg:"-t,--,required" placeholder:"TOKEN_FILE" help:"path to file with API token"`
+	TolinoFile string `arg:"-n,--,required" placeholder:"NOTES_FILE" help:"path to file with highlights & notes from Tolino"`
+}
+
+func (args) Description() string {
+	return "Uploads all highlights and notes from TOLINO_FILE to Readwise\n"
+}
+
+func (args) Epilogue() string {
+	return "For more information visit github.com/ssppooff/tolino-readwise-sync"
+}
+
 func main() {
-	tolino_file := "path to tolino notes.txt file"
-	file, _ := os.Open(tolino_file)
-	defer file.Close()
-
-	bytes, _ := io.ReadAll(file)
-	entries, _ := tolino.ExtractEntries(string(bytes))
-	entries, _ = utils.Filter(entries, func(te tolino.Entry) bool { return te.Changed == false })
-
-	filename := "path_to_token_file"
-	token, _ := readToken(filename)
-	ok, _ := readwise.CheckAPItoken(token, readwise.AuthURL)
-	if !ok {
-		return
+	var args args
+	arg.MustParse(&args)
+	token, err := readToken(args.TokenFile)
+	if err != nil {
+		panic(err)
 	}
+
+	ok, err := readwise.CheckAPItoken(token, readwise.AuthURL)
+	if err != nil {
+		panic(err)
+	}
+	if !ok {
+		panic("Token not valid")
+	} else {
+		fmt.Println("Token valid")
+	}
+
+	content, err := os.ReadFile(args.TolinoFile)
+	if err != nil {
+		panic(err)
+	}
+
+	entries, err := tolino.ExtractEntries(string(content))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Extracted %d highlights & notes\n", len(entries))
 
 	modBooks, err := readwise.CreateHighlights(utils.Map(entries, Convert), readwise.HighlightsURL, token)
 	if err != nil {
-		return
+		fmt.Println()
+		panic(err)
 	}
-
+	fmt.Println("Upload successful")
 	fmt.Printf("Added or modified %d book(s): %s\n", len(modBooks), strings.Join(modBooks, ", "))
 }
 
