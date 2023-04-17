@@ -156,7 +156,7 @@ func TestCreateHighlight(t *testing.T) {
 			body, _ := io.ReadAll(r.Body)
 			defer r.Body.Close()
 
-			const jsonPayload = `{"Highlights":[{"Text":"Some Text","Note":"","Title":"Title1","Author":"John Doe","Location":null,"Location_type":null,"Source_type":"app_ID1","Category":"books","Highlighted_at":null},{"Text":"Some more text","Note":"some note","Title":"Title2","Author":"John Smith","Location":null,"Location_type":null,"Source_type":"app_ID2","Category":"books","Highlighted_at":null}]}`
+			const jsonPayload = `{"highlights":[{"text":"Some Text","title":"Title1","author":"John Doe","source_type":"app_ID1","category":"books"},{"text":"Some more text","note":"some note","title":"Title2","author":"John Smith","source_type":"app_ID2","category":"books"}]}`
 			if string(body) != jsonPayload {
 				w.WriteHeader(http.StatusBadRequest)
 				return

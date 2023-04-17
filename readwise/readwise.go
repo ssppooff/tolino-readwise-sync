@@ -177,18 +177,21 @@ func setAuthHeader(token string, r *http.Request) *http.Request {
 
 // Values not required by API call are pointer to base type
 type HlCreate struct {
-	Text           string
-	Note           string
-	Title, Author  *string
-	Location       *int
-	Location_type  *string
-	Source_type    *string // app identifier
-	Category       *string
-	Highlighted_at *string // ISO 8601
+	Text           string  `json:"text"`
+	Note           string  `json:"note,omitempty"`
+	Title          *string `json:"title,omitempty"`
+	Author         *string `json:"author,omitempty"`
+	Location       *int    `json:"location,omitempty"`
+	Location_type  *string `json:"location_type,omitempty"`
+	Source_type    *string `json:"source_type,omitempty"` // app identifier
+	Category       *string `json:"category,omitempty"`
+	Highlighted_at *string `json:"highlighted_at,omitempty"` // ISO 8601
 }
 
 func CreateHighlights(hls []HlCreate, url, token string) error {
-	var payload = struct{ Highlights []HlCreate }{Highlights: hls}
+	var payload = struct {
+		Highlights []HlCreate `json:"highlights"`
+	}{Highlights: hls}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
