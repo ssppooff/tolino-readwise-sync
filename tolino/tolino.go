@@ -98,24 +98,32 @@ func extractType(token string) (string, error) {
 func extractNote(token string) (entry Entry, err error) {
 	pattern := regexp.MustCompile(`(?s)^(?P<title>.*)\s\((?P<author>.*, .*)\)\n(?P<type>.*?)\x{00A0}.+?(?P<page>\d+): (?P<note>.*)(?:\n?")(?P<highlight>.*)"\n(?P<isChange>.+) on\x{00A0}(?P<timestamp>.+)`)
 
-	tmp := pattern.FindStringSubmatch(token)
-	if len(tmp) != 9 {
+	matches := pattern.FindStringSubmatch(token)
+	if len(matches) != 9 {
 		err = TolinoError{err: ErrNotEnoughEntries, entry: token}
 		return
 	}
 
+	// Format in Tolino file is 'last, first name' (with comma) but Readwise uses 'first last name' without comma
+	tmp := strings.Split(matches[2], ", ")
+	tmp = utils.Map(tmp, strings.TrimSpace)
+	if len(tmp) > 1 {
+		tmp[0], tmp[1] = tmp[1], tmp[0]
+	}
+	author := strings.Join(tmp, " ")
+
 	// won't return error: if there is no page number, or in a wrong format (ie.,
 	//   not regex `\d+`), FindStringSubmatch(token) will not find enough entries
 	//   and will therefore return from this function with an error
-	pageNum, _ := strconv.Atoi(tmp[4])
+	pageNum, _ := strconv.Atoi(matches[4])
 
 	var hasChanged bool
-	if tmp[7] == "Changed" {
+	if matches[7] == "Changed" {
 		hasChanged = true
 	}
 
 	const timestampLayout = "01/02/2006 | 15:04"
-	timestamp, err := time.ParseInLocation(timestampLayout, tmp[8], time.Local)
+	timestamp, err := time.ParseInLocation(timestampLayout, matches[8], time.Local)
 	if err != nil {
 		err = TolinoError{err: ErrWrongTimeStamp, entry: token}
 		return
@@ -123,12 +131,12 @@ func extractNote(token string) (entry Entry, err error) {
 	timestamp = timestamp.Local()
 
 	entry = Entry{
-		Title:     tmp[1],
-		Author:    tmp[2],
-		EntryType: tmp[3],
+		Title:     matches[1],
+		Author:    author,
+		EntryType: matches[3],
 		Page:      pageNum,
-		Note:      tmp[5],
-		Highlight: tmp[6],
+		Note:      matches[5],
+		Highlight: matches[6],
 		Changed:   hasChanged,
 		Date:      timestamp,
 	}
