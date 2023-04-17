@@ -76,9 +76,10 @@ type Tag struct {
 type Book struct {
 	ID                int
 	Title, Author     string
-	Source, Updated   string
+	Source            string
 	ASIN              string
 	Num_highlights    int
+	Updated           time.Time
 	Last_highlight_at time.Time
 	Document_note     string
 	Tags              []Tag
