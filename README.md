@@ -8,37 +8,28 @@ For Kindle devices, it supports importing directly from your [highlights page on
 
 However, there is no import mechanism for Tolino devices, which are available in many parts of Europe (see [Wikipedia DE - Tolino](https://de.wikipedia.org/wiki/Tolino), and especially popular in German speaking countries (namely Germany, Austria, parts of Switzerland). Even though Tolino devices also use a local file to save highlights and annotations, its structure is different from Kindle's `My Clippings.txt`. And there is a cloud & app system available similar to Amazon's, however, it does not present your highlights and annotations on one page.
 
-## Impelemtation
-Readwise provides an [API](https://readwise.io/api_deets) which managing of an accounts highlights.
+## Current state
+- Mass upload of highlights & notes, irrespective of whether they have been already added
+ or changed on the Tolino
 
-Possible Features, besides syncing your Tolino highlights to Readwise (one way for now)
-- Add a specific tag to all highlights created by this app
-- Don't add a highlight twice (Readwise does de-dupe based on 'title/author/text/source_url')
-- (not sure if possible) in combination with Readwise's Reader, upload the original document alongside the highlights
+## Usage
+- Get your API token [readwise.io/access_token](https://readwise.io/access_token) (subscription or trial necessary)
+- Demo data Tolino `notes.txt` included in repo
+
+## Implementation
+Readwise provides an [API](https://readwise.io/api_deets) which manages an account's highlights.
+
+## Roadmap/Milestones
+1. Upload only highlights & notes marked as new by Tolino (current)
+2. Upload all highlights & notes, including those marked new (Readwise does de-dupe based on `title/author/text/source_url`)
+3. Don't add highlights & notes if they are already on Readwise
+4. Like previous version, but if a note or highlight has been marked as modified on the Tolino, add corresponding metadata to Readwise
+
+### Possible Features, depending on feasability
 - Detect if a highlight has been deleted on the Tolino, delete it on Readwise (or make it an option to do so)
-- Verify that access token is valid (see API docs)
-
-Possibly useful API commands
-- Highlight CREATE -> keep note of each id under `modified_highlights`
-- Highlight UPDATE
-- Highlight DETAIL
-- Highlights LIST, especially "filter by last updated datetime"
-- Books LIST <- more like documents (categories include `books`, `articles`, `tweets`, `supplementals`, `podcasts`)
-- Highlight Tag CREATE & Highlight Tags LIST
-
-
-### Implementation Questions
-- Is it possible to add an id-string to the note's file on the Tolino?
-- Is API command `Books CREATE` missing? or does a book get created automatically if necessary?
-
-### External Depencies
-
-## Roadmap / Milestones
-1. Check correct API token (done)
-2. Parse Tolino's notes.txt file into corresponding Go types (done)
-3. Get List of Highlites or Books
+- Add metadata inside Tolino's `notes.txt`, not sure if it would mess with the Tolino
+- Add highlights/notes as well as books/documents to Readwise's new [Reader](https://readwise.io/read)
 
 ## TODO
-## Concepts & Go things I need to learn
-- How to create HTTPS POST & GET requests
-- How to handle JSON objects
+- Improve test coverage
+- Package as CLI tool
