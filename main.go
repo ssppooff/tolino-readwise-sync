@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ssppooff/tolino-readwise-sync/readwise"
@@ -38,10 +39,12 @@ func main() {
 		return
 	}
 
-	err := readwise.CreateHighlights(utils.Map(entries, Convert), readwise.HighlightsURL, token)
+	modBooks, err := readwise.CreateHighlights(utils.Map(entries, Convert), readwise.HighlightsURL, token)
 	if err != nil {
 		return
 	}
+
+	fmt.Printf("Added or modified %d book(s): %s\n", len(modBooks), strings.Join(modBooks, ", "))
 }
 
 func readToken(filename string) (string, error) {

@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ssppooff/tolino-readwise-sync/utils"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -42,26 +43,6 @@ func CheckAPItoken(token string, url string) (bool, error) {
 	return true, nil
 }
 
-func writeJSONpayload(respBody io.Reader) error {
-	f, err := os.Create("highlights_JSON.json")
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	body, err := io.ReadAll(respBody)
-	if err != nil {
-		return err
-	}
-
-	_, err = f.Write(body)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type Highlight struct {
 	ID, Bookd_ID         int
 	Text, Note, Location string
@@ -90,31 +71,6 @@ type Page[E Highlight | Tag | Book] struct {
 	Count          int64
 	Next, Previous string
 	Results        []E
-}
-
-func decodeJSONpayload(filename string) (string, error) {
-	payload, err := os.ReadFile(filename)
-	if err != nil {
-		return "", errors.Join(fmt.Errorf("decode JSON: couldn't open file %q", filename), err)
-	}
-
-	var page Page[Highlight]
-	err = json.Unmarshal(payload, &page)
-
-	if err != nil {
-		return "", errors.Join(fmt.Errorf("decode JSON: couldn't unmarshal JSON"), err)
-	}
-
-	// var page map[string]interface{}
-	// if err != nil {
-	// 	return nil, errors.Join(errors.New("GetHighlights: couldn't decode response body"), err)
-	// }
-	// defer resp.Body.Close()
-	// return nil, nil
-
-	// 	return "", errors.Join(errors.New("readToken: error while scanning for token"), err)
-	// }
-	return "", nil
 }
 
 // Gotcha: parameters will be modified inside function
@@ -189,31 +145,35 @@ type HlCreate struct {
 	Highlighted_at *string `json:"highlighted_at,omitempty"` // ISO 8601
 }
 
-func CreateHighlights(hls []HlCreate, url, token string) error {
+func CreateHighlights(hls []HlCreate, url, token string) (modBooks []string, err error) {
 	var payload = struct {
 		Highlights []HlCreate `json:"highlights"`
 	}{Highlights: hls}
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return errors.Join(errors.New("error while converting highlights to JSON"))
+		err = errors.Join(errors.New("error while converting highlights to JSON"))
+		return
 	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
 	if err != nil {
-		return errors.Join(errors.New("couldn't create HTTP POST request"), err)
+		err = errors.Join(errors.New("couldn't create HTTP POST request"), err)
+		return
 	}
 
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	setAuthHeader(token, req)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return errors.Join(errors.New("couldn't send POST request"), err)
+		err = errors.Join(errors.New("couldn't send POST request"), err)
+		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Join(errors.New("received error after trying creating highlights on Readwise"), err)
+		err = errors.Join(fmt.Errorf("received status code: %d", resp.StatusCode))
+		return
 	}
 
 	ct := resp.Header["Content-Type"]
@@ -222,28 +182,42 @@ func CreateHighlights(hls []HlCreate, url, token string) error {
 		return
 	}
 
-	want := extractBooksFromHighlights(hls)
 	got := []Book{}
 	err = json.NewDecoder(resp.Body).Decode(&got)
 	if err != nil {
-		return errors.Join(errors.New("couldn't decode response body"), err)
+		err = errors.Join(errors.New("couldn't decode response body"), err)
+		return
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		return errors.New("response does not correspond to what is expected")
+	modBooks, ok := checkResponseBody(hls, got)
+	if !ok {
+		err = errors.New("response does not correspond to what is expected")
+		return
 	}
-
-	return nil
+	return
 }
 
-func extractBooksFromHighlights(hls []HlCreate) (books []Book) {
+func checkResponseBody(hls []HlCreate, books []Book) ([]string, bool) {
+	bksSent := []Book{}
 	for _, hl := range hls {
-		books = append(books, Book{
+		bksSent = append(bksSent, Book{
 			Author:   *hl.Author,
 			Title:    *hl.Title,
 			Source:   *hl.Source_type,
 			Category: *hl.Category,
 		})
 	}
-	return
+
+	bksSent = slices.CompactFunc(bksSent, func(t, o Book) bool {
+		return t.Title == o.Title &&
+			t.Author == o.Author &&
+			t.Source == o.Source &&
+			t.Category == o.Category
+	})
+
+	if len(bksSent) == len(books) {
+		modBooks := utils.Map(books, func(b Book) string { return b.Title })
+		return modBooks, true
+	}
+	return []string{}, false
 }

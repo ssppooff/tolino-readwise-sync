@@ -190,7 +190,7 @@ func TestCreateHighlight(t *testing.T) {
 		token := "validToken"
 
 		// Both highlights together should create 2 new books: Title1, by John Doe & Title2, by John Smith
-		err := CreateHighlights(hls, ts.URL, token)
+		_, err := CreateHighlights(hls, ts.URL, token)
 		checkNoError(t, err)
 	})
 }
