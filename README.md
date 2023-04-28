@@ -2,15 +2,23 @@
 Syncs the highlights and annotations you made on your Tolino to Readwise.
 
 ## How to run
-1. Using binary: Download the latest binary ([link](https://github.com/ssppooff/tolino-readwise-sync/releases/latest)) and run it with the following flags (or see help message
-- `-t TOKEN_FILE`, where `TOKEN_FILE` is the path to the file containing your Readwise API token, see [Usage](#usage)
-- `-n NOTES_FILE`, where `NOTES_FILE` is the path to the file you got off of your Tolino (usually `notes.txt`, located at the root of the Tolino's filesystem)
+### Binary
+Download the latest binary ([link](https://github.com/ssppooff/tolino-readwise-sync/releases/latest)) and run it with the following flags (or see help message):  
+```
+tolino-sync -t TOKEN_FILE -n NOTES_FILE
+```
+- `TOKEN_FILE` is the path to the file containing your Readwise API token, see [Usage](#usage).
+- `NOTES_FILE` is the path to the file you got off of your Tolino (usually `notes.txt`, located at the root of the Tolino's filesystem)
 
-2. Using Docker image on GHCR: `docker pull ghcr.io/ssppooff/tolino-readwise-sync/tolino-sync:latest`
+### Docker image
+Docker command to pull image from GHCR:  
+```
+docker pull ghcr.io/ssppooff/tolino-readwise-sync/tolino-sync:latest
+```
 - Default command uses the flags `-t /files/token -n /files/notes.txt`, ie., it looks for the files `token` and `notes.txt` inside the container file system at `/folder`; the files contain the API token and notes & highlights, respectively.
 - The command to run it using docker and a bind mount from the current working directory (assuming `token` & `notes.txt` inside `local_files/`) would be `docker run -v "$(pwd)"/local_files:/files tolino-sync:latest`
 
-## Problem
+## Problem Statement
 Readwise can import your highlights and annotations from many other services, including Amazon's Kindle.
 
 For Kindle devices, it supports importing directly from your [highlights page on amazon.com](https://read.amazon.com/notebook), but only for books purchased directly through Amazon. For all other books and documents, there is a file on Kindle devices called `My Clippings.txt` with all your highlights and annotations. Readwise let's you import that file either via email or uploading it to Readwise.
