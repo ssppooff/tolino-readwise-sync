@@ -1,6 +1,15 @@
 # tolino-readwise-sync
 Syncs the highlights and annotations you made on your Tolino to Readwise.
 
+## How to run
+1. Using binary: Download the latest binary ([link](https://github.com/ssppooff/tolino-readwise-sync/releases/latest)) and run it with the following flags (or see help message
+- `-t TOKEN_FILE`, where `TOKEN_FILE` is the path to the file containing your Readwise API token, see [Usage](#usage)
+- `-n NOTES_FILE`, where `NOTES_FILE` is the path to the file you got off of your Tolino (usually `notes.txt`, located at the root of the Tolino's filesystem)
+
+2. Using Docker image on GHCR: `docker pull ghcr.io/ssppooff/tolino-readwise-sync/tolino-sync:latest`
+- Default command uses the flags `-t /files/token -n /files/notes.txt`, ie., it looks for the files `token` and `notes.txt` inside the container file system at `/folder`; the files contain the API token and notes & highlights, respectively.
+- The command to run it using docker and a bind mount from the current working directory (assuming `token` & `notes.txt` inside `local_files/`) would be `docker run -v "$(pwd)"/local_files:/files tolino-sync:latest`
+
 ## Problem
 Readwise can import your highlights and annotations from many other services, including Amazon's Kindle.
 
@@ -11,6 +20,7 @@ However, there is no import mechanism for Tolino devices, which are available in
 However, Readwise provides an [API](https://readwise.io/api_deets) which manages an account's highlights.
 
 ## Current state
+- Only works if `notes.txt` file is in English (probably depends on which language is chosen for the Tolino)
 - Mass upload of highlights & notes, irrespective of whether they have been already added
  or changed on the Tolino (Readwise does de-duplication based on `title/author/text/source_url`)
  
